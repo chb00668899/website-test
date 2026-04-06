@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: ./docker/Dockerfile
+    container_name: blog-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_OSS_ACCESS_KEY_ID=${NEXT_PUBLIC_OSS_ACCESS_KEY_ID}
+      - NEXT_PUBLIC_OSS_ACCESS_KEY_SECRET=${NEXT_PUBLIC_OSS_ACCESS_KEY_SECRET}
+      - NEXT_PUBLIC_OSS_BUCKET=${NEXT_PUBLIC_OSS_BUCKET}
+      - NEXT_PUBLIC_OSS_ENDPOINT=${NEXT_PUBLIC_OSS_ENDPOINT}
+      - NEXT_PUBLIC_OSS_BUCKET_URL=${NEXT_PUBLIC_OSS_BUCKET_URL}
+    restart: unless-stopped
+    volumes:
+      - ../public:/app/public:ro
+    networks:
+      - blog-network
+
+networks:
+  blog-network:
+    driver: bridge
