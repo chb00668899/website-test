@@ -9,17 +9,16 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
-import { PostService } from '@/services/postService';
+import { AdminPostService } from '@/services/adminPostService';
 import type { Post } from '@/lib/types';
 
 export default function AdminPostsPage() {
-  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
 
   const { data: posts, isLoading, error, refetch } = useQuery({
-    queryKey: ['adminPosts', search, statusFilter],
+    queryKey: ['adminPosts', statusFilter],
     queryFn: async () => {
-      const posts = await PostService.getAllPosts({ 
+      const posts = await AdminPostService.getAllPosts({ 
         limit: 100, 
         offset: 0,
         status: statusFilter === 'all' ? undefined : statusFilter
@@ -33,10 +32,8 @@ export default function AdminPostsPage() {
   }, [refetch]);
 
   const filteredPosts = (posts || []).filter((post: Post) => {
-    const matchesSearch = post.title.toLowerCase().includes(search.toLowerCase()) ||
-      post.slug.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || post.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesStatus;
   });
 
   const getStatusBadge = (status: string) => {
@@ -85,13 +82,6 @@ export default function AdminPostsPage() {
 
       {/* Filters */}
       <Card className="p-4 mb-6 flex flex-wrap gap-4 items-center">
-        <Input
-          type="text"
-          placeholder="搜索文章标题或 slug..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 min-w-[200px]"
-        />
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as 'all' | 'published' | 'draft')}
@@ -154,7 +144,7 @@ export default function AdminPostsPage() {
                       <Link href={`/admin/posts/${post.id}`}>编辑</Link>
                     </Button>
                     <Button asChild variant="ghost" size="sm">
-                      <Link href={`/posts/${post.slug}`} target="_blank">预览</Link>
+                      <Link href={`/posts/${post.id}`} target="_blank">预览</Link>
                     </Button>
                   </div>
                 </div>

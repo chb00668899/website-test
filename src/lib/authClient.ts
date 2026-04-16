@@ -22,31 +22,108 @@ class AuthClient {
   }
 
   /**
+   * 从 cookie 中获取模拟用户信息（开发模式）
+   */
+  private getMockUserFromCookie(): User | null {
+    if (typeof window === 'undefined') return null;
+
+    const getCookie = (name: string) => {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    };
+
+    const mockSession = getCookie('mock-session');
+    if (!mockSession) return null;
+
+    try {
+      const mockUser = JSON.parse(mockSession);
+      return {
+        id: mockUser.id,
+        email: mockUser.email,
+        user_metadata: {
+          ...mockUser.user_metadata,
+          role: mockUser.role
+        },
+        app_metadata: {
+          role: mockUser.role
+        },
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+        role: mockUser.role
+      } as User;
+    } catch (error) {
+      console.error('[AuthClient] 解析 mock-session cookie 失败:', error);
+      return null;
+    }
+  }
+
+  /**
    * 获取当前会话
    */
   async getSession() {
+    // 首先尝试从 cookie 中获取模拟用户（开发模式）
+    // 优先使用 cookie 中的模拟用户
+    const mockUser = this.getMockUserFromCookie();
+    if (mockUser) {
+      // 创建一个模拟会话对象
+      return {
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh-token',
+        expires_in: 604800, // 7 天
+        expires_at: Math.floor(Date.now() / 1000) + 604800,
+        user: mockUser,
+        token_type: 'bearer'
+      } as Session;
+    }
+
+    // 如果 cookie 中没有模拟用户，尝试从 Supabase 获取会话
     const { data, error } = await this.client.auth.getSession();
     
     if (error) {
       console.error('[AuthClient] 获取会话失败:', error);
-      return null;
     }
 
-    return data.session;
+    if (data?.session) {
+      return data.session;
+    }
+
+    return null;
   }
 
   /**
    * 获取当前用户
    */
   async getCurrentUser() {
-    const { data, error } = await this.client.auth.getUser();
-    
-    if (error) {
-      console.error('[AuthClient] 获取用户失败:', error);
-      return null;
+    // 首先尝试从 cookie 中获取模拟用户（开发模式）
+    // 优先使用 cookie 中的模拟用户
+    const mockUser = this.getMockUserFromCookie();
+    if (mockUser) {
+      return mockUser;
     }
 
-    return data.user;
+    // 如果 cookie 中没有模拟用户，尝试从 Supabase 获取用户
+    try {
+      const { data, error } = await this.client.auth.getUser();
+      
+      // 如果有用户，返回用户
+      if (data?.user) {
+        return data.user;
+      }
+      
+      // 如果有错误（例如 AuthSessionMissingError），在开发模式下是正常的
+      // 因为我们使用 cookie 中的模拟用户，Supabase 可能没有会话
+      if (error) {
+        // 只在非开发模式或有重要错误时记录
+        const isAuthMissingError = error.message?.includes('AuthSessionMissingError');
+        if (!isAuthMissingError) {
+          console.warn('[AuthClient] 获取用户失败:', error);
+        }
+      }
+    } catch (error) {
+      console.error('[AuthClient] 获取用户异常:', error);
+    }
+
+    return null;
   }
 
   /**

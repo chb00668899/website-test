@@ -132,8 +132,7 @@
   - [ ] 3.1.1 创建 `src/app/(public)/posts/page.tsx`
   - [ ] 3.1.2 实现博客卡片组件 `src/components/blog/BlogCard.tsx`
   - [ ] 3.1.3 实现分页功能（加载更多/无限滚动）
-  - [ ] 3.1.4 实现分类筛选功能
-  - [ ] 3.1.5 实现搜索功能
+- [ ] 3.1.4 实现分类筛选功能
 - [ ] 3.2 创建博客详情页面
   - [ ] 3.2.1 创建 `src/app/(public)/posts/[slug]/page.tsx`
   - [ ] 3.2.2 创建 `src/components/blog/MarkdownRenderer.tsx`（Markdown渲染器）
@@ -185,7 +184,6 @@
   - [ ] 4.2.1 创建 `src/app/(public)/videos/page.tsx`
   - [ ] 4.2.2 创建视频卡片组件 `src/components/video/VideoCard.tsx`
   - [ ] 4.2.3 实现视频分类筛选功能
-  - [ ] 4.2.4 实现视频搜索功能
 - [ ] 4.3 创建视频播放页面
   - [ ] 4.3.1 创建 `src/app/(public)/videos/[id]/page.tsx`
   - [ ] 4.3.2 创建视频播放器组件 `src/components/video/VideoPlayer.tsx`
@@ -289,5 +287,55 @@
   - [ ] 6.6.4 优化 bundle 体积
 - [ ] 6.7 监控和日志
   - [ ] 6.7.1 集成 Sentry（错误监控）
-  - [ ] 6.7.2 配置 Docker 日志驱动
+- [ ] 6.7.2 配置 Docker 日志驱动
   - [ ] 6.7.3 创建日志工具类 `src/lib/logger.ts`
+
+---
+
+## 里程碑 7：测试和部署
+
+**目标**：实现完整的测试套件，完成 CI/CD 配置，准备生产部署
+
+### 验收标准
+- [ ] Vitest 配置完成，测试环境正常运行
+- [ ] 单元测试覆盖核心功能模块
+- [ ] 端到端测试覆盖主要用户流程
+- [ ] CI/CD 流程配置完成（GitHub Actions）
+- [ ] 部署文档编写完成
+
+### 任务清单
+- [ ] 7.1 测试配置
+  - [ ] 7.1.1 安装测试依赖（Vitest, Testing Library）
+  - [ ] 7.1.2 创建 Vitest 配置文件（vitest.config.ts）
+  - [ ] 7.1.3 创建测试设置文件（src/test/setup.ts）
+  - [ ] 7.1.4 配置测试环境变量
+- [ ] 7.2 单元测试
+  - [ ] 7.2.1 创建服务层测试（src/services/__tests__/）
+    - [ ] 7.2.1.1 postService.test.ts
+    - [ ] 7.2.1.2 videoService.test.ts
+    - [ ] 7.2.1.3 commentService.test.ts
+  - [ ] 7.2.2 创建组件测试（src/components/__tests__/）
+    - [ ] 7.2.2.1 LikeButton.test.tsx
+    - [ ] 7.2.2.2 CommentForm.test.tsx
+    - [ ] 7.2.2.3 VideoPlayer.test.tsx
+  - [ ] 7.2.3 创建工具函数测试（src/lib/__tests__/）
+    - [ ] 7.2.3.1 utils.test.ts
+    - [ ] 7.2.3.2 permissions.test.ts
+- [ ] 7.3 端到端测试
+  - [ ] 7.3.1 安装 Playwright 或 Cypress
+  - [ ] 7.3.2 创建 E2E 测试配置
+  - [ ] 7.3.3 编写主要用户流程测试
+    - [ ] 7.3.3.1 首页浏览测试
+    - [ ] 7.3.3.2 博客阅读测试
+    - [ ] 7.3.3.3 评论提交测试
+    - [ ] 7.3.3.4 登录/登出测试
+- [ ] 7.4 CI/CD 配置
+  - [ ] 7.4.1 创建 GitHub Actions 工作流（.github/workflows/ci.yml）
+  - [ ] 7.4.2 配置自动测试运行
+  - [ ] 7.4.3 配置代码质量检查（ESLint, TypeScript）
+  - [ ] 7.4.4 配置自动部署（Docker Hub 推送）
+- [ ] 7.5 部署准备
+  - [ ] 7.5.1 创建部署文档（deployment.md）
+  - [ ] 7.5.2 创建环境变量模板（.env.example）
+  - [ ] 7.5.3 创建监控和日志配置
+  - [ ] 7.5.4 创建备份和恢复脚本

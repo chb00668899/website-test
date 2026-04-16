@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -109,7 +110,7 @@ export default function EditVideoPage() {
           <p className="text-gray-500 mt-1">修改您的视频内容</p>
         </div>
         <Button asChild>
-          <a href="/admin/videos">返回列表</a>
+          <Link href="/admin/videos">返回列表</Link>
         </Button>
       </div>
 

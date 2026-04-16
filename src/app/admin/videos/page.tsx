@@ -7,21 +7,18 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Input } from '@/components/ui/Input';
 import { VideoService } from '@/services/videoService';
 import type { Video } from '@/lib/types';
 
 export default function AdminVideosPage() {
-  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
 
   const { data: videos, isLoading, error, refetch } = useQuery({
-    queryKey: ['adminVideos', search, statusFilter],
+    queryKey: ['adminVideos', statusFilter],
     queryFn: async () => {
       const videos = await VideoService.getVideos({ 
         limit: 100, 
-        page: 1,
-        search
+        page: 1
       });
       return videos;
     }
@@ -32,9 +29,7 @@ export default function AdminVideosPage() {
   }, [refetch]);
 
   const filteredVideos = (videos?.videos || []).filter((video: Video) => {
-    const matchesSearch = video.title.toLowerCase().includes(search.toLowerCase()) ||
-      video.description?.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
+    return true;
   });
 
   if (isLoading) {
@@ -72,13 +67,6 @@ export default function AdminVideosPage() {
 
       {/* Filters */}
       <Card className="p-4 mb-6 flex flex-wrap gap-4 items-center">
-        <Input
-          type="text"
-          placeholder="搜索视频标题或描述..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 min-w-[200px]"
-        />
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as 'all' | 'published' | 'draft')}
@@ -89,7 +77,7 @@ export default function AdminVideosPage() {
           <option value="draft">草稿</option>
         </select>
         <span className="text-sm text-gray-500">
-          共 {filteredVideos.length} 个视频
+          共 {videos?.videos?.length || 0} 个视频
         </span>
       </Card>
 

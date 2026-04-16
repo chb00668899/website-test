@@ -6,19 +6,42 @@ import type { Post, Category, Tag, Comment, Video } from './types';
  * 用于服务器端的管理员操作，具有完整的数据库访问权限
  */
 class SupabaseAdmin {
-  private client: SupabaseClient;
+  private _client: SupabaseClient | null = null;
 
-  constructor() {
-    const supabaseUrl = process.env.SUPABASE_URL || '';
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
+  get client(): SupabaseClient {
+    if (!this._client) {
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY || '';
 
-    // 检查配置
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.warn('[SupabaseAdmin] 缺少 Supabase 配置，管理员功能将不可用');
+      // 检查配置
+      if (!supabaseUrl || !supabaseServiceKey) {
+        console.error('[SupabaseAdmin] Supabase 配置缺失:');
+        console.error('  - SUPABASE_URL:', process.env.SUPABASE_URL ? '已设置' : '未设置');
+        console.error('  - NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? '已设置' : '未设置');
+        console.error('  - SUPABASE_SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY ? '已设置' : '未设置');
+        console.error('  - NEXT_PUBLIC_SUPABASE_SERVICE_KEY:', process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY ? '已设置' : '未设置');
+        throw new Error('Supabase 配置缺失');
+      }
+
+      console.log('[SupabaseAdmin] 创建客户端，URL:', supabaseUrl);
+      // 创建 Supabase 管理客户端
+      // 注意：Supabase 的服务端密钥会自动绕过 RLS，需要设置 auth 选项防止继承前端上下文
+      this._client = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        },
+        db: {
+          schema: 'public'
+        }
+      });
     }
 
-    // 创建 Supabase 管理客户端
-    this.client = createClient(supabaseUrl, supabaseServiceKey);
+    return this._client;
+  }
+
+  constructor() {
+    // 延迟初始化客户端
   }
 
   /**

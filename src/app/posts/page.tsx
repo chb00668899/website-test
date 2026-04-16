@@ -9,18 +9,17 @@ import { BlogCard } from '@/components/blog/BlogCard';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { postService } from '@/services/postService';
+import { PostService } from '@/services/postService';
 import type { Post } from '@/lib/types';
 
 export default function PostsPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['posts', page, search, category],
-    queryFn: () => postService.getPosts({ page, limit, search, category })
+    queryKey: ['posts', page, category],
+    queryFn: () => PostService.getPosts({ page, limit, category })
   });
 
   if (isLoading) {
@@ -56,15 +55,8 @@ export default function PostsPage() {
         <p className="text-gray-600">分享技术心得与生活感悟</p>
       </div>
 
-      {/* Search and Filter */}
+      {/* Filter */}
       <div className="flex flex-col md:flex-row gap-4 mb-8">
-        <input
-          type="text"
-          placeholder="搜索文章..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
         <select
           value={category || ''}
           onChange={(e) => setCategory(e.target.value || null)}

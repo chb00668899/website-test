@@ -62,7 +62,7 @@ export const BlogCard = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="mt-auto">
-        <Link href={`/posts/${slug}`} className="text-sm font-medium text-primary hover:underline">
+        <Link href={`/posts/${id}`} className="text-sm font-medium text-primary hover:underline">
           阅读详情 →
         </Link>
       </CardContent>

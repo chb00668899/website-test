@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import Link from 'next/link';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
@@ -10,7 +11,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Badge } from '@/components/ui/Badge';
-import { PostService } from '@/services/postService';
+import { AdminPostService } from '@/services/adminPostService';
 import type { Category, Post } from '@/lib/types';
 
 export default function EditPostPage() {
@@ -32,13 +33,7 @@ export default function EditPostPage() {
   const { data: post, isLoading: postLoading } = useQuery({
     queryKey: ['post', postId],
     queryFn: async () => {
-      // 尝试通过 ID 获取
-      try {
-        return await PostService.getPostById(postId);
-      } catch (error) {
-        // 如果失败，尝试通过 slug 获取（兼容旧数据）
-        return await PostService.getPostBySlug(postId);
-      }
+      return await AdminPostService.getPostById(postId);
     },
     enabled: !!postId,
   });
@@ -47,7 +42,7 @@ export default function EditPostPage() {
   useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      const categories = await PostService.getCategories();
+      const categories = await AdminPostService.getAllCategories();
       setCategories(categories);
       return categories;
     }
@@ -88,7 +83,7 @@ export default function EditPostPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (updatedPost: Partial<Post>) => {
-      return await PostService.updatePost(postId, updatedPost);
+      return await AdminPostService.updatePost(postId, updatedPost);
     },
     onSuccess: () => {
       router.push('/admin/posts');
@@ -108,6 +103,9 @@ export default function EditPostPage() {
       return;
     }
 
+    // 确保作者 ID 不变
+    const author_id = post?.author_id;
+
     setIsLoading(true);
     try {
       const updatedPost = {
@@ -118,7 +116,7 @@ export default function EditPostPage() {
         status,
         category_id: categoryId,
         tags,
-        author_id: '1',
+        author_id,
         view_count: post?.view_count || 0,
         created_at: post?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -151,7 +149,7 @@ export default function EditPostPage() {
           <p className="text-gray-500 mt-1">修改您的博客文章</p>
         </div>
         <Button asChild>
-          <a href="/admin/posts">返回列表</a>
+          <Link href="/admin/posts">返回列表</Link>
         </Button>
       </div>
 

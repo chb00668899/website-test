@@ -12,11 +12,10 @@ import type { Video } from '@/lib/types';
 export default function VideosPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(6);
-  const [search, setSearch] = useState('');
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['videos', page, search],
-    queryFn: () => VideoService.getVideos({ page, limit, search })
+    queryKey: ['videos', page],
+    queryFn: () => VideoService.getVideos({ page, limit })
   });
 
   if (isLoading) {
@@ -52,16 +51,7 @@ export default function VideosPage() {
         <p className="mb-8 max-w-2xl mx-auto text-xl text-muted-foreground">
           分享前端开发、技术栈和开发经验的视频教程
         </p>
-        <div className="flex flex-col sm:flex-row justify-center gap-4 max-w-md mx-auto">
-          <input
-            type="text"
-            placeholder="搜索视频..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <Button onClick={() => setPage(1)}>搜索</Button>
-        </div>
+        
       </div>
 
       {/* Video Grid */}

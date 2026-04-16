@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
+import Link from 'next/link';
+import { useUser } from '@/hooks/useUser';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -12,6 +14,7 @@ import type { Video } from '@/lib/types';
 
 export default function NewVideoPage() {
   const router = useRouter();
+  const { user } = useUser();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [ossUrl, setOssUrl] = useState('');
@@ -42,6 +45,12 @@ export default function NewVideoPage() {
       return;
     }
 
+    if (!user) {
+      alert('请先登录');
+      router.push('/login');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const newVideo: Partial<Video> = {
@@ -51,6 +60,7 @@ export default function NewVideoPage() {
         thumbnail_url: thumbnailUrl || ossUrl,
         duration: duration ? parseInt(duration) : 0,
         status,
+        author_id: user.id,
         view_count: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -73,7 +83,7 @@ export default function NewVideoPage() {
           <p className="text-gray-500 mt-1">添加新的视频内容</p>
         </div>
         <Button asChild>
-          <a href="/admin/videos">返回列表</a>
+          <Link href="/admin/videos">返回列表</Link>
         </Button>
       </div>
 

@@ -217,12 +217,23 @@ website/
 
 #### 3.2.1 Users (用户表)
 
+Supabase 的 `auth.users` 表存储用户基本信息，额外的用户角色信息存储在 `user_profiles` 表中。
+
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | UUID | 主键 |
+| id | UUID | 主键（对应 auth.users.id） |
 | email | TEXT | 邮箱（唯一） |
 | name | TEXT | 昵称 |
 | avatar_url | TEXT | 头像 URL |
+| created_at | TIMESTAMPTZ | 创建时间 |
+| updated_at | TIMESTAMPTZ | 更新时间 |
+
+#### 3.2.1b User Profiles (用户配置文件表)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | UUID | 主键（对应 auth.users.id） |
+| role | TEXT | 用户角色（admin/user） |
 | created_at | TIMESTAMPTZ | 创建时间 |
 | updated_at | TIMESTAMPTZ | 更新时间 |
 

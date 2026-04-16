@@ -1,21 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import Link from 'next/link';
+import { useUser } from '@/hooks/useUser';
 import type { Post } from '@/lib/types';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import type { Category } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Badge } from '@/components/ui/Badge';
-import { PostService } from '@/services/postService';
-import type { Category, Tag } from '@/lib/types';
 
 export default function NewPostPage() {
   const router = useRouter();
+  const { user } = useUser();
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [content, setContent] = useState('');
@@ -25,17 +25,19 @@ export default function NewPostPage() {
   const [tagInput, setTagInput] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSlugChecked, setIsSlugChecked] = useState(false);
 
   // 获取分类列表
   useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      const categories = await PostService.getCategories();
-      setCategories(categories);
-      if (categories.length > 0) {
-        setCategoryId(categories[0].id);
+      const res = await fetch('/api/categories');
+      const data = await res.json();
+      setCategories(data.categories);
+      if (data.categories && data.categories.length > 0) {
+        setCategoryId(data.categories[0].id);
       }
-      return categories;
+      return data.categories;
     }
   });
 
@@ -43,7 +45,9 @@ export default function NewPostPage() {
     if (!title) return;
     const slug = title
       .toLowerCase()
-      .replace(/[^\w\u4e00-\u9fa5]+/g, '-')
+      .trim()
+      .replace(/[^\w\u4e00-\u9fa5-]+/g, '-')
+      .replace(/--+/g, '-')
       .replace(/^-+|-+$/g, '');
     setSlug(slug);
   };
@@ -61,7 +65,19 @@ export default function NewPostPage() {
 
   const createMutation = useMutation({
     mutationFn: async (postData: Partial<Post>) => {
-      return await PostService.createPost(postData);
+      const res = await fetch('/api/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(postData),
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to create post');
+      }
+      
+      return await res.json();
     },
     onSuccess: () => {
       router.push('/admin/posts');
@@ -81,6 +97,12 @@ export default function NewPostPage() {
       return;
     }
 
+    if (!user) {
+      alert('请先登录');
+      router.push('/login');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const newPost = {
@@ -90,7 +112,7 @@ export default function NewPostPage() {
         status,
         category_id: categoryId,
         tags,
-        author_id: '1', // TODO: 从用户认证获取
+        author_id: user.id,
         view_count: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -113,7 +135,7 @@ export default function NewPostPage() {
           <p className="text-gray-500 mt-1">撰写您的新博客文章</p>
         </div>
         <Button asChild>
-          <a href="/admin/posts">返回列表</a>
+          <Link href="/admin/posts">返回列表</Link>
         </Button>
       </div>
 
