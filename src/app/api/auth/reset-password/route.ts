@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     );
 
     // 调用 Supabase 密码重置 API
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
     });
 

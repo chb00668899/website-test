@@ -1,51 +1,67 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { authClient } from '@/lib/authClient';
-import type { User, Session } from '@supabase/supabase-js';
+
+interface ApiUser {
+  id: string;
+  email: string | null;
+  role: string;
+  created_at?: string;
+}
 
 export function useUser() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ApiUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [session, setSession] = useState<Session | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 初始化获取当前用户
-    const initUser = async () => {
+    const fetchUser = async () => {
       try {
-        const currentSession = await authClient.getSession();
-        const currentUser = await authClient.getCurrentUser();
-        
-        setSession(currentSession);
-        setUser(currentUser);
-      } catch (error) {
-        console.error('[useUser] 初始化失败:', error);
+        // ⚠️ 关键：credentials: 'include' 才能发送 cookie！
+        const response = await fetch('/api/auth/user', {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setUser(data.user || null);
+      } catch (err) {
+        console.error('[useUser] 获取用户失败:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    initUser();
-
-    // 监听认证状态变化
-    const { data: authListener } = authClient.onAuthStateChange(
-      (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        setIsLoading(false);
-      }
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+    fetchUser();
   }, []);
+
+  const refetch = async () => {
+    try {
+      const response = await fetch('/api/auth/user', {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user || null);
+      } else {
+        setUser(null);
+      }
+    } catch (err) {
+      setUser(null);
+    }
+  };
 
   return {
     user,
-    session,
     isLoading,
     isLoggedIn: !!user,
+    error,
+    refetch,
   };
 }
 

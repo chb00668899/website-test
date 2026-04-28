@@ -78,12 +78,11 @@ export class AdminPostService {
   // 创建新文章
   static async createPost(postData: Partial<Post>) {
     console.log('[AdminPostService] Creating post with data:', postData);
-    
+
     const { data, error } = await supabaseAdmin.client
       .from('posts')
       .insert([postData])
-      .select()
-      .single();
+      .select();
 
     if (error) {
       console.error('[AdminPostService] Error creating post:', error);
@@ -91,8 +90,10 @@ export class AdminPostService {
       throw new Error(error.message);
     }
 
-    console.log('[AdminPostService] Post created successfully:', data);
-    return data;
+    // insert with select returns an array
+    const result = data && data.length > 0 ? data[0] : postData;
+    console.log('[AdminPostService] Post created successfully:', result);
+    return result;
   }
 
   // 更新文章

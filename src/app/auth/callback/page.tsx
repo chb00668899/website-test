@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authClient } from '@/lib/authClient';
 
@@ -8,7 +8,7 @@ import { authClient } from '@/lib/authClient';
  * OAuth 回调页面
  * 处理 GitHub/Google OAuth 登录后的回调
  */
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -44,5 +44,19 @@ export default function AuthCallbackPage() {
         <p className="mt-2 text-gray-600">请稍候，我们正在处理您的登录请求</p>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">正在加载...</h2>
+        </div>
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }

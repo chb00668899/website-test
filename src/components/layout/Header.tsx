@@ -26,12 +26,12 @@ const Header = () => {
             </Link>
           </nav>
           <div className="flex items-center space-x-4">
-            <button className="text-sm font-medium hover:underline">
+            <Link href="/login" className="text-sm font-medium hover:underline">
               登录
-            </button>
-            <button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            </Link>
+            <Link href="/login?register=true" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
               注册
-            </button>
+            </Link>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+'use client';
+
 import Head from 'next/head';
 
 type MetaTagProps = {

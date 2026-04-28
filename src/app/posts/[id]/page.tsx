@@ -1,102 +1,41 @@
-'use client';
-
-import { useEffect, use } from 'react';
-import { useQuery, QueryClient } from '@tanstack/react-query';
+import { use } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { notFound } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { PostService } from '@/services/postService';
-import { CommentService } from '@/services/commentService';
-import { LikeService } from '@/services/likeService';
-import { SEO } from '@/components/seo/SEO';
-import { CommentList } from '@/components/blog/CommentList';
-import { CommentForm } from '@/components/blog/CommentForm';
 import { LikeButton } from '@/components/blog/LikeButton';
+import type { Post } from '@/lib/types';
 
-// 获取所有文章以生成导航链接
-async function getAllPosts() {
-  try {
-    const posts = await PostService.getPublishedPosts({ limit: 100, offset: 0 });
-    return posts;
-  } catch (error) {
-    console.error('Error fetching all posts:', error);
-    return [];
-  }
+async function getPost(id: string): Promise<Post | null> {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const res = await fetch(`${baseUrl}/api/posts/${id}`, { cache: 'no-store' });
+  if (!res.ok) return null;
+  return res.json();
 }
 
 export default function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const post = use((async () => await getPost(id))());
 
-  const { data: post, isLoading, error } = useQuery({
-    queryKey: ['post', id],
-    queryFn: () => PostService.getPostById(id)
-  });
-
-  // 获取评论
-  const { data: comments, isLoading: commentsLoading } = useQuery({
-    queryKey: ['comments', post?.id],
-    queryFn: () => CommentService.getComments(post?.id || ''),
-    enabled: !!post?.id
-  });
-
-  const { data: allPosts } = useQuery({
-    queryKey: ['allPosts'],
-    queryFn: getAllPosts,
-    staleTime: 5 * 60 * 1000 // 5分钟缓存
-  });
-
-  if (isLoading) {
-    return (
-      <>
-        <SEO title="加载中..." />
-        <div className="container mx-auto py-8">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  if (error || !post) {
+  if (!post) {
     return notFound();
   }
 
-  // 获取上一篇和下一篇
-  const posts = allPosts || [];
-  const currentPostIndex = posts.findIndex((p: { id: string }) => p.id === id);
-  const prevPost = currentPostIndex > 0 ? posts[currentPostIndex - 1] : null;
-  const nextPost = currentPostIndex < posts.length - 1 ? posts[currentPostIndex + 1] : null;
-
-  // 解析 Markdown 内容（简化版）
-  const renderContent = (content: string | object) => {
-    if (typeof content === 'string') {
-      return content;
-    }
-    return JSON.stringify(content);
-  };
-
   return (
-    <>
-      <SEO
-        title={post.title}
-        description={post.content ? (typeof post.content === 'string' ? post.content.slice(0, 100) : '博客文章') : '博客文章'}
-      />
-      <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8">
         {/* Back Button */}
         <div className="mb-6">
-          <Button variant="ghost" onClick={() => window.history.back()}>
+          <Link href="/posts" className="text-sm text-gray-500 hover:text-gray-900">
             ← 返回列表
-          </Button>
+          </Link>
         </div>
 
         {/* Post Header */}
         <article className="mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">{post.title}</h1>
-          
+
           <div className="flex flex-wrap gap-4 mb-6 text-sm text-gray-500">
             <span className="flex items-center gap-1">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,32 +66,9 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
 
           {/* Content */}
           <div className="prose max-w-none prose-lg">
-            <div dangerouslySetInnerHTML={{ __html: renderContent(post.content) }} />
+            <div dangerouslySetInnerHTML={{ __html: typeof post.content === 'string' ? post.content : JSON.stringify(post.content) }} />
           </div>
         </article>
-
-        {/* Post Navigation */}
-        {(prevPost || nextPost) && (
-          <div className="flex justify-between items-center border-t pt-6 mb-12">
-            {prevPost ? (
-              <Link href={`/posts/${prevPost.id}`} className="flex flex-col">
-                <span className="text-sm text-gray-500 mb-1">上一篇</span>
-                <span className="font-semibold text-blue-600">{prevPost.title}</span>
-              </Link>
-            ) : (
-              <div />
-            )}
-
-            {nextPost ? (
-              <Link href={`/posts/${nextPost.id}`} className="flex flex-col text-right">
-                <span className="text-sm text-gray-500 mb-1">下一篇</span>
-                <span className="font-semibold text-blue-600">{nextPost.title}</span>
-              </Link>
-            ) : (
-              <div />
-            )}
-          </div>
-        )}
 
         {/* Author Info */}
         <div className="bg-gray-50 p-6 rounded-lg mb-12">
@@ -170,68 +86,10 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
         {/* Comments Section */}
         <div className="mb-12">
           <h2 className="text-2xl font-bold mb-6">评论</h2>
-          
-          {/* Comment Form */}
-          <div className="mb-8">
-            <CommentForm 
-              postId={post.id} 
-              onSubmit={async (content) => {
-                try {
-                  await CommentService.createComment({
-                    post_id: post.id,
-                    content,
-                    author_id: '1' // TODO: 从用户认证获取
-                  });
-                  // 刷新评论列表
-                  // TODO: 需要通过 React Query Context 获取 queryClient
-                } catch (error) {
-                  console.error('Error creating comment:', error);
-                  alert('评论失败');
-                }
-              }}
-              placeholder="发表你的看法..."
-            />
-          </div>
-
-          {/* Comment List */}
           <Card className="p-6">
-            <CommentList 
-              postId={post.id}
-              comments={comments?.map((comment: { id: string; content: string; author_id: string; users?: { name?: string; avatar_url?: string }[]; created_at: string; replies?: Array<{ id: string; content: string; author_id: string; users?: { name?: string; avatar_url?: string }[]; created_at: string }> }) => ({
-                id: comment.id,
-                content: comment.content,
-                author_id: comment.author_id,
-                author_name: comment.users?.[0]?.name,
-                author_avatar: comment.users?.[0]?.avatar_url,
-                created_at: comment.created_at,
-                replies: comment.replies?.map((reply: { id: string; content: string; author_id: string; users?: { name?: string; avatar_url?: string }[]; created_at: string }) => ({
-                  id: reply.id,
-                  content: reply.content,
-                  author_id: reply.author_id,
-                  author_name: reply.users?.[0]?.name,
-                  author_avatar: reply.users?.[0]?.avatar_url,
-                  created_at: reply.created_at
-                }))
-              })) || []} 
-              onReply={async (parentId, content) => {
-                try {
-                  await CommentService.createComment({
-                    post_id: post.id,
-                    parent_comment_id: parentId,
-                    content,
-                    author_id: '1' // TODO: 从用户认证获取
-                  });
-                  // 刷新评论列表
-                  // TODO: 需要通过 React Query Context 获取 queryClient
-                } catch (error) {
-                  console.error('Error creating reply:', error);
-                  alert('回复失败');
-                }
-              }}
-            />
+            <p className="text-gray-500">评论功能暂未启用</p>
           </Card>
         </div>
       </div>
-    </>
   );
 }

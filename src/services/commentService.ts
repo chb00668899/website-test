@@ -11,11 +11,7 @@ export class CommentService {
         id,
         content,
         author_id,
-        created_at,
-        users:author_id (
-          name,
-          avatar_url
-        )
+        created_at
       `)
       .eq('post_id', postId)
       .eq('parent_comment_id', null)
@@ -35,11 +31,7 @@ export class CommentService {
             id,
             content,
             author_id,
-            created_at,
-            users:author_id (
-              name,
-              avatar_url
-            )
+            created_at
           `)
           .eq('parent_comment_id', comment.id)
           .order('created_at', { ascending: true });
@@ -69,16 +61,7 @@ export class CommentService {
     const { data, error } = await supabase
       .from('comments')
       .insert([commentData])
-      .select(`
-        id,
-        content,
-        author_id,
-        created_at,
-        users:author_id (
-          name,
-          avatar_url
-        )
-      `)
+      .select()
       .single();
 
     if (error) {
@@ -112,16 +95,7 @@ export class CommentService {
       .update({ content, updated_at: new Date().toISOString() })
       .eq('id', commentId)
       .eq('author_id', userId)
-      .select(`
-        id,
-        content,
-        author_id,
-        created_at,
-        users:author_id (
-          name,
-          avatar_url
-        )
-      `)
+      .select()
       .single();
 
     if (error) {

@@ -82,9 +82,6 @@ export class PostService {
       throw new Error(error.message);
     }
 
-    // 更新浏览次数
-    await this.incrementViewCount(data.id);
-
     return data;
   }
 
@@ -116,22 +113,7 @@ export class PostService {
       throw new Error(error.message);
     }
 
-    // 更新浏览次数
-    await this.incrementViewCount(data.id);
-
     return data;
-  }
-
-  // 增加文章浏览次数
-  static async incrementViewCount(postId: string) {
-    const { error } = await supabase
-      .rpc('increment_view_count', { 
-        post_id: postId 
-      });
-
-    if (error) {
-      console.error('Error incrementing view count:', error);
-    }
   }
 
   // 获取文章分类

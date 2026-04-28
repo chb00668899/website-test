@@ -25,7 +25,15 @@ const nextConfig: NextConfig = {
         hostname: 'chb00668899.oss-cn-hangzhou.aliyuncs.com',
       },
       {
+        protocol: 'http',
+        hostname: 'chb00668899.oss-cn-hangzhou.aliyuncs.com',
+      },
+      {
         protocol: 'https',
+        hostname: '*.oss-cn-hangzhou.aliyuncs.com',
+      },
+      {
+        protocol: 'http',
         hostname: '*.oss-cn-hangzhou.aliyuncs.com',
       },
     ],

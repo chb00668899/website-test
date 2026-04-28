@@ -47,9 +47,8 @@ function LoginPageContent() {
       });
       
       if (response.ok) {
-        // 清除本地 cookie
+        // 清除本地 cookie（Supabase SSR 会自动清除）
         document.cookie = 'mock-session=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
-        router.push('/login');
         router.refresh();
       }
     } catch (err) {
@@ -83,9 +82,10 @@ function LoginPageContent() {
       }
 
       if (data.user) {
-        // 登录成功，Supabase 会自动设置会话 cookie
+        console.log('[Login Page] 登录成功，重定向到:', redirect);
+        // 登录成功，Supabase SSR 已设置会话 cookie
         // 重定向到目标页面
-        router.push(redirect);
+        router.push(data.redirect || redirect);
         router.refresh();
       }
     } catch (err) {

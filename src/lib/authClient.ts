@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import type { User, AuthResponse, Session } from '@supabase/supabase-js';
+import type { User, Session } from '@supabase/supabase-js';
 
 /**
  * 认证客户端
@@ -22,7 +22,7 @@ class AuthClient {
   }
 
   /**
-   * 从 cookie 中获取模拟用户信息（开发模式）
+   * 从 cookie 中获取模拟用户信息（开发模式 - 已弃用）
    */
   private getMockUserFromCookie(): User | null {
     if (typeof window === 'undefined') return null;
@@ -40,16 +40,10 @@ class AuthClient {
       return {
         id: mockUser.id,
         email: mockUser.email,
-        user_metadata: {
-          ...mockUser.user_metadata,
-          role: mockUser.role
-        },
-        app_metadata: {
-          role: mockUser.role
-        },
+        user_metadata: mockUser.user_metadata || { role: mockUser.role || 'user' },
+        app_metadata: { role: mockUser.role || 'user' },
         aud: 'authenticated',
-        created_at: new Date().toISOString(),
-        role: mockUser.role
+        created_at: new Date().toISOString()
       } as User;
     } catch (error) {
       console.error('[AuthClient] 解析 mock-session cookie 失败:', error);
@@ -58,69 +52,61 @@ class AuthClient {
   }
 
   /**
-   * 获取当前会话
+   * 获取当前会话（优先使用真实 Supabase session cookie）
    */
   async getSession() {
-    // 首先尝试从 cookie 中获取模拟用户（开发模式）
-    // 优先使用 cookie 中的模拟用户
-    const mockUser = this.getMockUserFromCookie();
-    if (mockUser) {
-      // 创建一个模拟会话对象
-      return {
-        access_token: 'mock-token',
-        refresh_token: 'mock-refresh-token',
-        expires_in: 604800, // 7 天
-        expires_at: Math.floor(Date.now() / 1000) + 604800,
-        user: mockUser,
-        token_type: 'bearer'
-      } as Session;
-    }
-
-    // 如果 cookie 中没有模拟用户，尝试从 Supabase 获取会话
+    // 优先从真实的 Supabase session cookie 获取会话
     const { data, error } = await this.client.auth.getSession();
-    
+
     if (error) {
       console.error('[AuthClient] 获取会话失败:', error);
+      return null;
     }
 
     if (data?.session) {
       return data.session;
     }
 
+    // 降级到 mock-session（仅用于开发调试）
+    const mockUser = this.getMockUserFromCookie();
+    if (mockUser) {
+      return {
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh-token',
+        expires_in: 604800,
+        expires_at: Math.floor(Date.now() / 1000) + 604800,
+        user: mockUser,
+        token_type: 'bearer'
+      } as Session;
+    }
+
     return null;
   }
 
   /**
-   * 获取当前用户
+   * 获取当前用户（优先使用真实 Supabase session）
    */
   async getCurrentUser() {
-    // 首先尝试从 cookie 中获取模拟用户（开发模式）
-    // 优先使用 cookie 中的模拟用户
-    const mockUser = this.getMockUserFromCookie();
-    if (mockUser) {
-      return mockUser;
-    }
-
-    // 如果 cookie 中没有模拟用户，尝试从 Supabase 获取用户
+    // 优先从真实的 Supabase session 获取用户
     try {
       const { data, error } = await this.client.auth.getUser();
-      
-      // 如果有用户，返回用户
+
+      if (error) {
+        console.error('[AuthClient] 获取用户失败:', error);
+        return null;
+      }
+
       if (data?.user) {
         return data.user;
       }
-      
-      // 如果有错误（例如 AuthSessionMissingError），在开发模式下是正常的
-      // 因为我们使用 cookie 中的模拟用户，Supabase 可能没有会话
-      if (error) {
-        // 只在非开发模式或有重要错误时记录
-        const isAuthMissingError = error.message?.includes('AuthSessionMissingError');
-        if (!isAuthMissingError) {
-          console.warn('[AuthClient] 获取用户失败:', error);
-        }
-      }
     } catch (error) {
       console.error('[AuthClient] 获取用户异常:', error);
+    }
+
+    // 降级到 mock-session（仅用于开发调试）
+    const mockUser = this.getMockUserFromCookie();
+    if (mockUser) {
+      return mockUser;
     }
 
     return null;
@@ -273,14 +259,16 @@ class AuthClient {
    */
   async getUserRole() {
     const user = await this.getCurrentUser();
-    
+
     if (!user) {
       return 'anonymous';
     }
 
-    // 从用户元数据中获取角色
-    const role = user.user_metadata?.role || 'user';
-    
+    // 从应用元数据或用户元数据中获取角色
+    // app_metadata 包含系统级信息（如 Supabase admin 角色）
+    // user_metadata 包含用户自定义的元数据
+    const role = user.app_metadata?.role || user.user_metadata?.role || 'user';
+
     return role;
   }
 }

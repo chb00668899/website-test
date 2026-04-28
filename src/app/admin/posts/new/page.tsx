@@ -25,8 +25,7 @@ export default function NewPostPage() {
   const [tagInput, setTagInput] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSlugChecked, setIsSlugChecked] = useState(false);
-
+ 
   // 获取分类列表
   useQuery({
     queryKey: ['categories'],
@@ -40,6 +39,13 @@ export default function NewPostPage() {
       return data.categories;
     }
   });
+
+  // 监听标题变化，自动生成 slug（仅在用户未手动修改 slug 时）
+  useEffect(() => {
+    if (title && !slug) {
+      generateSlug();
+    }
+  }, [title]);
 
   const generateSlug = () => {
     if (!title) return;
@@ -70,13 +76,14 @@ export default function NewPostPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // ⚠️ 必须带 cookie，否则服务端认为未登录！
         body: JSON.stringify(postData),
       });
-      
+
       if (!res.ok) {
         throw new Error('Failed to create post');
       }
-      
+
       return await res.json();
     },
     onSuccess: () => {
@@ -110,12 +117,8 @@ export default function NewPostPage() {
         slug,
         content,
         status,
-        category_id: categoryId,
+        category_id: categoryId || null,
         tags,
-        author_id: user.id,
-        view_count: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
       };
 
       await createMutation.mutateAsync(newPost);
@@ -153,6 +156,7 @@ export default function NewPostPage() {
                     value={title}
                     onChange={(e) => {
                       setTitle(e.target.value);
+                      // 自动生成 slug：如果当前 slug 为空，则基于新标题生成
                       if (!slug) {
                         generateSlug();
                       }

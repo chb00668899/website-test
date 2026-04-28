@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       user: {
         id: registerData.user?.id,
         email: registerData.user?.email,
-        role: registerData.user?.user_metadata?.role || 'user',
+        role: registerData.user?.app_metadata?.role || registerData.user?.user_metadata?.role || 'user',
       },
       session: registerData.session,
     });

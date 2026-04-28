@@ -21,9 +21,14 @@ export function LikeButton({ postId, initialLikeCount = 0, showCount = true }: L
   useEffect(() => {
     // 获取当前点赞状态
     if (user) {
-      LikeService.getUserLikeStatus(postId, user.id).then(status => {
-        setUserLiked(!!status);
-      });
+      LikeService.getUserLikeStatus(postId, user.id)
+        .then(status => {
+          setUserLiked(!!status);
+        })
+        .catch(() => {
+          // 忽略错误，如 RLS 限制或表不存在
+          setUserLiked(false);
+        });
     }
   }, [postId, user]);
 

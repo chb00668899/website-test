@@ -50,9 +50,6 @@ export class VideoService {
       throw new Error(error.message);
     }
 
-    // 更新浏览次数
-    await this.incrementViewCount(id);
-
     return data;
   }
 

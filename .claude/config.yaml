@@ -1,0 +1,5 @@
+memory:
+  # 和llama.cpp启动参数-c 120000对齐，预留30K系统开销，适配玲珑星核96G显存
+  context_window: 90000
+  auto_trim: true
+  trim_strategy: "oldest_first"

@@ -1,15 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useUser } from '@/hooks/useUser';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
-import { VideoService } from '@/services/videoService';
 import type { Video } from '@/lib/types';
 
 export default function NewVideoPage() {
@@ -22,20 +20,6 @@ export default function NewVideoPage() {
   const [duration, setDuration] = useState('');
   const [status, setStatus] = useState<'published' | 'draft'>('draft');
   const [isLoading, setIsLoading] = useState(false);
-
-  const createMutation = useMutation({
-    mutationFn: async (videoData: Partial<Video>) => {
-      return await VideoService.createVideo(videoData);
-    },
-    onSuccess: () => {
-      router.push('/admin/videos');
-      router.refresh();
-    },
-    onError: (error) => {
-      console.error('Error creating video:', error);
-      alert('创建视频失败');
-    }
-  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,11 +46,21 @@ export default function NewVideoPage() {
         status,
         author_id: user.id,
         view_count: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
       };
 
-      await createMutation.mutateAsync(newVideo);
+      const res = await fetch('/api/videos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newVideo),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || '创建失败');
+      }
+
+      router.push('/admin/videos');
+      router.refresh();
     } catch (error) {
       console.error('Error creating video:', error);
       alert('创建视频失败');

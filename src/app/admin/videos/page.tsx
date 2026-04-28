@@ -1,56 +1,53 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { VideoService } from '@/services/videoService';
+import DeleteVideoButton from '@/components/admin/DeleteVideoButton';
 import type { Video } from '@/lib/types';
 
-export default function AdminVideosPage() {
-  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
+async function getVideos(status?: string): Promise<{ videos: Video[]; count: number }> {
+  const params = new URLSearchParams({ page: '1', limit: '100' });
+  if (status) params.set('status', status);
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const res = await fetch(`${baseUrl}/api/videos?${params}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch videos');
+  return res.json();
+}
 
-  const { data: videos, isLoading, error, refetch } = useQuery({
-    queryKey: ['adminVideos', statusFilter],
-    queryFn: async () => {
-      const videos = await VideoService.getVideos({ 
-        limit: 100, 
-        page: 1
-      });
-      return videos;
-    }
-  });
+export default async function AdminVideosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const { status: statusParam } = await searchParams;
+  const statusFilter = statusParam === 'published' || statusParam === 'draft' ? statusParam : 'all';
 
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
-
-  const filteredVideos = (videos?.videos || []).filter((video: Video) => {
-    return true;
-  });
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-        </div>
-      </div>
-    );
+  let result: { videos: Video[]; count: number } | null = null;
+  let error: Error | null = null;
+  try {
+    result = await getVideos(statusFilter === 'all' ? undefined : statusFilter);
+  } catch (e) {
+    error = e as Error;
   }
 
   if (error) {
     return (
       <div className="container mx-auto py-8">
         <Card className="p-6 text-center">
-          <p className="text-red-500">加载失败: {(error as Error).message}</p>
-          <Button onClick={() => refetch()} className="mt-4">重试</Button>
+          <p className="text-red-500">加载失败: {error.message}</p>
+          <Button asChild className="mt-4">
+            <Link href="/admin/videos">重试</Link>
+          </Button>
         </Card>
       </div>
     );
+  }
+
+  const videos = result?.videos || [];
+
+  function formatDuration(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
   return (
@@ -67,28 +64,37 @@ export default function AdminVideosPage() {
 
       {/* Filters */}
       <Card className="p-4 mb-6 flex flex-wrap gap-4 items-center">
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as 'all' | 'published' | 'draft')}
-          className="px-3 py-2 border rounded-md bg-background"
-        >
-          <option value="all">全部状态</option>
-          <option value="published">已发布</option>
-          <option value="draft">草稿</option>
-        </select>
+        {['all', 'published', 'draft'].map((filter) => {
+          const label = filter === 'all' ? '全部状态' : filter === 'published' ? '已发布' : '草稿';
+          const href = filter === 'all' ? '/admin/videos' : `/admin/videos?status=${filter}`;
+          const isActive = statusFilter === filter;
+          return (
+            <Link
+              key={filter}
+              href={href}
+              className={`px-3 py-2 border rounded-md text-sm ${
+                isActive
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-background hover:bg-gray-50'
+              }`}
+            >
+              {label}
+            </Link>
+          );
+        })}
         <span className="text-sm text-gray-500">
-          共 {videos?.videos?.length || 0} 个视频
+          共 {videos.length} 个视频
         </span>
       </Card>
 
       {/* Videos List */}
       <div className="space-y-4">
-        {filteredVideos.length === 0 ? (
+        {videos.length === 0 ? (
           <Card className="p-8 text-center">
             <p className="text-gray-500">暂无视频</p>
           </Card>
         ) : (
-          filteredVideos.map((video: Video) => (
+          videos.map((video: Video) => (
             <Card key={video.id} className="p-6 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -102,7 +108,7 @@ export default function AdminVideosPage() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      {format(new Date(video.created_at), 'yyyy-MM-dd')}
+                      {new Date(video.created_at).toLocaleDateString('zh-CN')}
                     </span>
                     <span className="flex items-center gap-1">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,12 +117,14 @@ export default function AdminVideosPage() {
                       </svg>
                       {video.view_count || 0} 次播放
                     </span>
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {video.duration ? `${Math.floor(video.duration / 60)}:${(video.duration % 60).toString().padStart(2, '0')}` : '00:00'}
-                    </span>
+                    {video.duration != null && (
+                      <span className="flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {formatDuration(video.duration)}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -127,6 +135,7 @@ export default function AdminVideosPage() {
                     <Button asChild variant="ghost" size="sm">
                       <Link href={`/videos/${video.id}`} target="_blank">预览</Link>
                     </Button>
+                    <DeleteVideoButton videoId={video.id} />
                   </div>
                 </div>
               </div>

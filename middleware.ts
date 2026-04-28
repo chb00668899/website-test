@@ -1,5 +1,5 @@
-import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * 路由守卫中间件
@@ -9,46 +9,54 @@ const protectedRoutes = ['/admin'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // 检查是否是受保护的路由
-  const isProtectedRoute = protectedRoutes.some(route => 
+  const isProtectedRoute = protectedRoutes.some(route =>
     pathname.startsWith(route) || pathname === route
   );
 
   if (isProtectedRoute) {
-    // 创建服务端 Supabase 客户端
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll(cookiesToSet: Array<{ name: string; value: string }>) {
-            cookiesToSet.forEach(({ name, value }: { name: string; value: string }) => 
-              request.cookies.set(name, value)
-            );
-          },
-        },
-      }
-    );
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-    // 检查会话
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error || !session) {
-      // 如果没有会话，重定向到登录页面
+    if (!supabaseUrl) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
 
+    // 从 URL 提取 projectRef
+    const projectRef = supabaseUrl.split('.')[0].split('://')[1];
+    const accessTokenCookieName = `sb-${projectRef}-auth-token`;
+
+    // 直接读取 access_token cookie
+    const accessTokenCookie = request.cookies.get(accessTokenCookieName);
+
+    if (!accessTokenCookie) {
+      console.log('[Middleware] No auth token cookie, redirecting to login:', pathname);
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // 使用 access_token 验证用户
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: { user }, error } = await supabase.auth.getUser(accessTokenCookie.value);
+
+    if (error || !user) {
+      console.log('[Middleware] Invalid token, redirecting to login:', pathname, 'error:', error?.message);
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    console.log('[Middleware] User authenticated:', user.id);
+
     // 检查用户角色
-    const user = session.user;
-    const role = user?.user_metadata?.role || 'user';
-    
+    const role = user.app_metadata?.role || user.user_metadata?.role || 'user';
+
     if (role !== 'admin' && pathname.startsWith('/admin')) {
+      console.log('[Middleware] Non-admin access, redirecting:', user.id, 'role:', role);
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
   }
